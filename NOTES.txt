@@ -1,0 +1,7 @@
+A quick-n-dirty markup reformatter.
+===================================
+
+1. Read babylon-text markup from file into tree in memory.
+2. Read reformatting rules into memory.
+3. Apply the reformatting rules to the tree in memory.
+4. Output the result.
