@@ -1,2 +1,2 @@
 # babylon-text
-A markup reformatted.
+A markup reformatter.

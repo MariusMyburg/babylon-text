@@ -1,5 +1,6 @@
 
 #include <stdlib.h>
+#include <ctype.h>
 
 #include "babylon_text.h"
 
@@ -36,7 +37,6 @@ struct node_t {
    enum node_type_t type;
    char *text;
    ds_hmap_t *hmap;
-   size_t nnodes;
    void **nodes;
 };
 
@@ -55,6 +55,80 @@ static void node_del (node_t *node)
    ds_array_del (node->nodes);
 }
 
+static node_t *node_readfile (const char *filename);
+
+static node_t *read_tree (FILE *inf, const char *filename,
+                          size_t *line, size_t *charpos)
+{
+   return NULL;
+}
+
+static node_t *read_text (FILE *inf, const char *filename,
+                          size_t *line, size_t *charpos)
+{
+   return NULL;
+}
+
+static node_t *read_directive (FILE *inf, const char *filename,
+                               size_t *line, size_t *charpos)
+{
+   return NULL;
+}
+
+static node_t *node_read_next (FILE *inf, const char *filename)
+{
+   bool error = true;
+   node_t *ret = NULL,
+          *cur = NULL;
+
+   size_t line = 0,
+          charpos = 0;
+
+   int c = 0;
+
+   if (!(ret = malloc (sizeof *ret))) {
+      LOG_ERR ("OOM\n");
+      goto errorexit;
+   }
+
+   memset (ret, 0, sizeof *ret);
+
+   while ((c = fgetc (inf)) != EOF) {
+
+      if ((isspace (c)))
+         continue;
+
+      ungetc (c, inf);
+
+      cur = NULL;
+
+      if (c == '[')
+         cur = read_tree (inf, filename, &line, &charpos);
+
+      if (c == '#')
+         cur = read_directive (inf, filename, &line, &charpos);
+
+      if (!cur)
+         cur = read_text (inf, filename, &line, &charpos);
+
+      if (!(ds_array_ins_tail (&ret->nodes, cur))) {
+         LOG_ERR ("Failed to append to array\n");
+         goto errorexit;
+      }
+   }
+
+   error = false;
+
+errorexit:
+
+   if (error) {
+      node_del (ret);
+      ret = NULL;
+   }
+
+   return ret;
+}
+
 static node_t *node_readfile (const char *filename)
 {
    bool error = true;
@@ -67,6 +141,11 @@ static node_t *node_readfile (const char *filename)
       goto errorexit;
    }
 
+   if (!(ret = node_read_next (inf, filename))) {
+      LOG_ERR ("Failed to read a node\n");
+      goto errorexit;
+   }
+
    error = false;
 
 errorexit:
@@ -74,6 +153,7 @@ errorexit:
       node_del (ret);
       ret = NULL;
    }
+
    if (inf)
       fclose (inf);
 
