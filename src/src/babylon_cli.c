@@ -19,7 +19,7 @@ int main (void)
 
    printf ("Starting babylon processing\n");
 
-   if (!(b = babylon_text_read (NULL, TEST_INPUT))) {
+   if (!(b = babylon_text_read (TEST_INPUT))) {
       PROG_ERR ("Failed to read input from file [%s]:%m\n", TEST_INPUT);
       goto errorexit;
    }

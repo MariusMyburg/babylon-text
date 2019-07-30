@@ -4,6 +4,7 @@
 #include "babylon_text.h"
 
 #include "ds_array.h"
+#include "ds_str.h"
 #include "ds_hmap.h"
 
 #define LOG_ERR(...)      do {\
@@ -12,6 +13,8 @@
    fprintf (stderr, "\n");\
 } while (0)
 
+
+/* ************************************************************** */
 
 enum node_type_t {
    node_NODE,
@@ -37,13 +40,6 @@ struct node_t {
    void **nodes;
 };
 
-struct babylon_text_t {
-   node_t *root;
-
-   int errcode;
-   char *errmsg;
-};
-
 static void node_del (node_t *node)
 {
    if (!node)
@@ -59,8 +55,77 @@ static void node_del (node_t *node)
    ds_array_del (node->nodes);
 }
 
-babylon_text_t *babylon_text_read (const babylon_text_t *src,
-                                   const char *filename)
+static node_t *node_readfile (const char *filename)
+{
+   bool error = true;
+   FILE *inf = NULL;
+
+   node_t *ret = NULL;
+
+   if (!(inf = fopen (filename, "r"))) {
+      LOG_ERR ("Failed to open file [%s]:%m\n", filename);
+      goto errorexit;
+   }
+
+   error = false;
+
+errorexit:
+   if (error) {
+      node_del (ret);
+      ret = NULL;
+   }
+   if (inf)
+      fclose (inf);
+
+   return ret;
+}
+
+/* ************************************************************** */
+
+struct babylon_text_t {
+   node_t *root;
+
+   int errcode;
+   char *errmsg;
+};
+
+void babylon_text_error (babylon_text_t *b, int errcode)
+{
+   static const struct {
+      int         errcode;
+      const char *errmsg;
+   } errors[] = {
+      { BABYLON_EPARAM, "Bad parameter"      },
+      { BABYLON_EFREAD, "Input-file error"   },
+   };
+
+   char *tmp = NULL;
+
+   if (!b)
+      return;
+
+   for (size_t i=0; i<sizeof errors/sizeof errors[0]; i++) {
+      if (errors[i].errcode == errcode) {
+         if (!(tmp = ds_str_dup (errors[i].errmsg))) {
+            LOG_ERR ("Fatal error: OOM\n");
+            return;
+         }
+      }
+   }
+
+   if (!tmp)
+      ds_str_printf (&tmp, "Unknown error [%i]", errcode);
+
+   if (!tmp) {
+      LOG_ERR ("Fatal error: OOM\n");
+      return;
+   }
+
+   free (b->errmsg);
+   b->errmsg = tmp;
+}
+
+babylon_text_t *babylon_text_read (const char *filename)
 {
    babylon_text_t *ret = NULL;
 
@@ -72,7 +137,13 @@ babylon_text_t *babylon_text_read (const babylon_text_t *src,
    LOG_ERR ("Created\n");
 
    memset (ret, 0, sizeof *ret);
-   ret->errcode = -1;
+   ret->errcode = 0;
+   ret->errmsg = ds_str_dup ("Success");
+   if (!(ret->root = node_readfile (filename))) {
+      LOG_ERR ("Failed to read file [%s]:%m\n", filename);
+      babylon_text_error (ret, BABYLON_EFREAD);
+      goto errorexit;
+   }
 
 errorexit:
    return ret;

@@ -7,6 +7,7 @@
 
 
 #define BABYLON_EPARAM        (-1)
+#define BABYLON_EFREAD        (-2)
 
 typedef struct babylon_text_t babylon_text_t;
 typedef struct babylon_macro_t babylon_macro_t;
@@ -19,8 +20,7 @@ extern "C" {
    void babylon_macro_del (babylon_macro_t *m);
 
 
-   babylon_text_t *babylon_text_read (const babylon_text_t *src,
-                                      const char *filename);
+   babylon_text_t *babylon_text_read (const char *filename);
    void babylon_text_del (babylon_text_t *b);
 
    babylon_text_t *babylon_text_transform (babylon_text_t *src,
