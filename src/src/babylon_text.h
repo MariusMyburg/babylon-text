@@ -6,6 +6,8 @@
 #include <stdio.h>
 
 
+#define BABYLON_EPARAM        (-1)
+
 typedef struct babylon_text_t babylon_text_t;
 typedef struct babylon_macro_t babylon_macro_t;
 
@@ -17,15 +19,17 @@ extern "C" {
    void babylon_macro_del (babylon_macro_t *m);
 
 
-   babylon_text_t *babylon_text_new (void);
+   babylon_text_t *babylon_text_read (const babylon_text_t *src,
+                                      const char *filename);
+   void babylon_text_del (babylon_text_t *b);
+
    babylon_text_t *babylon_text_transform (babylon_text_t *src,
                                            const babylon_macro_t *m);
 
-   void babylon_text_del (babylon_text_t *b);
-
-   bool babylon_text_read (babylon_text_t *b, const char *filename);
    bool babylon_text_write (babylon_text_t *b, FILE *outf);
 
+   int babylon_text_errcode (babylon_text_t *b);
+   const char *babylon_text_errmsg (babylon_text_t *b);
 
 
 #ifdef __cplusplus
