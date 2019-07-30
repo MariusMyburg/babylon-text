@@ -40,6 +40,26 @@ struct node_t {
    void **nodes;
 };
 
+static void node_dump (node_t *node)
+{
+   printf ("%30s: %p\n", "START NODE", node);
+   if (!node) {
+      printf ("%30s: %p\n", "END  NODE", node);
+      return;
+   }
+
+   printf ("%30s: %s\n",      "filename", node->filename);
+   printf ("%30s: %zu\n",     "line",     node->line);
+   printf ("%30s: %zu\n",     "charpos",  node->charpos);
+   printf ("%30s: %i\n",      "type",     node->type);
+   printf ("%30s: %s\n",      "text",     node->text);
+   printf ("----\n");
+   for (size_t i=0; node->nodes[i]; i++) {
+      node_dump (node->nodes[i]);
+   }
+   printf ("%30s: %p\n", "END  NODE", node);
+}
+
 static void node_del (node_t *node)
 {
    if (!node)
@@ -110,6 +130,11 @@ static node_t *node_read_next (FILE *inf, const char *filename)
 
       if (!cur)
          cur = read_text (inf, filename, &line, &charpos);
+
+      node_dump (cur);
+
+      if (!cur)
+         break;
 
       if (!(ds_array_ins_tail (&ret->nodes, cur))) {
          LOG_ERR ("Failed to append to array\n");
