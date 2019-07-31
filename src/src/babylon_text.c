@@ -69,10 +69,12 @@ static void node_del (node_t *node)
    free (node->text);
    ds_hmap_del (node->hmap); // TODO free the values
 
-   for (size_t i=0; node->nodes[i]; i++) {
+   for (size_t i=0; node->nodes && node->nodes[i]; i++) {
       node_del (node->nodes[i]);
    }
    ds_array_del (node->nodes);
+
+   free (node);
 }
 
 static node_t *node_readfile (const char *filename);
