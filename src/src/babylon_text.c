@@ -1,6 +1,7 @@
 
 #include <stdlib.h>
 #include <ctype.h>
+#include <stdint.h>
 
 #include "babylon_text.h"
 
@@ -119,8 +120,23 @@ errorexit:
    return ret;
 }
 
+// TODO: These functions make this module thread-unsafe. Refactor into a
+// different module that maintains thread-safety
+static void **g_instream = NULL;
+
 static int get_next_char (FILE *inf, size_t *line, size_t *charpos)
 {
+   if (!g_instream) {
+      if (!(g_instream = ds_array_new ())) {
+         LOG_ERR ("Fatal error creating array\n");
+         return 0;
+      }
+   }
+
+   if (ds_array_length (g_instream) > 0) {
+      return (int) (intptr_t) ds_array_remove_tail (&g_instream);
+   }
+
    int ret = fgetc (inf);
 
    (*charpos) += 1;
@@ -131,6 +147,23 @@ static int get_next_char (FILE *inf, size_t *line, size_t *charpos)
    }
 
    return ret;
+}
+
+static void unget_char (int c, FILE *inf)
+{
+   inf = inf;
+
+   if (!g_instream) {
+      if (!(g_instream = ds_array_new ())) {
+         LOG_ERR ("Fatal error creating array\n");
+         return;
+      }
+   }
+
+   if (!(ds_array_ins_tail (&g_instream, (void *)(intptr_t)c))) {
+      LOG_ERR ("Fatal error creating array\n");
+      return;
+   }
 }
 
 static char *get_next_word (FILE *inf, const char *filename,
@@ -178,6 +211,8 @@ errorexit:
 }
 
 
+/* ***************************************************************** */
+
 static node_t *node_readfile (const char *filename);
 static node_t *node_read_next (node_t *parent,
                                FILE *inf, const char *filename,
@@ -198,8 +233,6 @@ static node_t *read_tree (FILE *inf, const char *filename,
       LOG_ERR ("Failed to read tagname\n");
       goto errorexit;
    }
-
-   LOG_ERR ("reading tree [%s]\n", text);
 
    if (!(ret = node_new (filename, node_NODE, text, *line, *charpos))) {
       LOG_ERR ("Failed to create return node [%s]\n", text);
@@ -238,8 +271,6 @@ static node_t *read_text (FILE *inf, const char *filename,
       LOG_ERR ("OOM\n");
       goto errorexit;
    }
-
-   LOG_ERR ("reading text [%s]\n", text);
 
    if (!(ret = node_new (filename, node_VALUE, text, o_line, o_charpos))) {
       LOG_ERR ("Failure creating new node\n");
@@ -287,7 +318,7 @@ static node_t *node_read_next (node_t *parent,
       if (c == ']')
          break;
 
-      ungetc (c, inf);
+      unget_char (c, inf);
 
       cur = NULL;
 
