@@ -386,11 +386,35 @@ errorexit:
 static node_t *read_directive (FILE *inf, const char *filename,
                                size_t *line, size_t *charpos)
 {
+   char *directive = NULL;
+   char *fname = NULL;
+   int delim = 0;
+   node_t *ret = NULL;
+
    filename = filename;
    // Discard the first character
    get_next_char (inf, line, charpos);
 
-   return NULL;
+   if (!(directive = get_next_word (inf, "[]", &delim, line, charpos))) {
+      LOG_ERR ("Failed to get directive after #\n");
+      goto errorexit;
+   }
+
+   LOG_ERR ("Running directive [%s]\n", directive);
+   if ((strcmp (directive, "include"))==0) {
+      if (!(fname = get_next_word (inf, "[]", &delim, line, charpos))) {
+         LOG_ERR ("Failed to include directive\n");
+         goto errorexit;
+      }
+
+      LOG_ERR ("Loading [%s]\n", fname);
+      ret = node_readfile (fname);
+   }
+
+errorexit:
+   free (directive);
+   free (fname);
+   return ret;
 }
 
 static node_t *node_read_next (node_t *parent,
@@ -431,7 +455,8 @@ static node_t *node_read_next (node_t *parent,
          cur = read_directive (inf, filename, line, charpos);
 
       if (!cur)
-         cur = read_text (inf, filename, line, charpos);
+         if (!(cur = read_text (inf, filename, line, charpos)))
+            goto errorexit;
 
       if (!cur)
          break;
