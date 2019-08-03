@@ -54,6 +54,25 @@ static void node_dump (node_t *node)
    printf ("%30s: %zu\n",     "charpos",  node->charpos);
    printf ("%30s: %i\n",      "type",     node->type);
    printf ("%30s: %s\n",      "text",     node->text);
+
+   if (node->type == node_NODE) {
+      size_t nkeys = 0;
+      char **keys = NULL;
+      size_t *keylens = NULL;
+
+      nkeys = ds_hmap_keys (node->hmap, (void ***)&keys, &keylens);
+      for (size_t i=0; i<nkeys; i++) {
+         char *value = NULL;
+         if (!(ds_hmap_get_str_str (node->hmap, keys[i], &value))) {
+            LOG_ERR ("Failed to get key for [%s]\n", keys[i]);
+         } else {
+            printf ("%30s => %s\n", keys[i], value);
+         }
+      }
+      free (keys);
+      free (keylens);
+   }
+
    printf ("----\n");
    for (size_t i=0; node->nodes && node->nodes[i]; i++) {
       node_dump (node->nodes[i]);
@@ -68,12 +87,27 @@ static void node_del (node_t *node)
 
    free (node->filename);
    free (node->text);
-   ds_hmap_del (node->hmap); // TODO free the values
 
    for (size_t i=0; node->nodes && node->nodes[i]; i++) {
       node_del (node->nodes[i]);
    }
    ds_array_del (node->nodes);
+
+   if (node->hmap) {
+      char **keys = NULL;
+      size_t *keylens = NULL;
+
+      size_t nkeys = ds_hmap_keys (node->hmap, (void ***)&keys, &keylens);
+      for (size_t i=0; nkeys!=(size_t)-1 && i<nkeys; i++) {
+         char *value = NULL;
+         ds_hmap_get_str_str (node->hmap, keys[i], &value);
+         free (value);
+      }
+
+      free (keys);
+      free (keylens);
+      ds_hmap_del (node->hmap);
+   }
 
    free (node);
 }
@@ -101,6 +135,10 @@ static node_t *node_new (const char *filename, enum node_type_t type,
          LOG_ERR ("Cannot create new array of children for node\n");
          goto errorexit;
       }
+      if (!(ret->hmap = ds_hmap_new (4))) {
+         LOG_ERR ("Cannot create hashmap for node\n");
+         goto errorexit;
+      }
    }
 
    if (!ret->filename || !ret->text) {
@@ -123,6 +161,13 @@ errorexit:
 // TODO: These functions make this module thread-unsafe. Refactor into a
 // different module that maintains thread-safety
 static void **g_instream = NULL;
+void g_instream_cleanup (void)
+{
+   if (g_instream) {
+      ds_array_del (g_instream);
+      g_instream = NULL;
+   }
+}
 
 static int get_next_char (FILE *inf, size_t *line, size_t *charpos)
 {
@@ -131,6 +176,7 @@ static int get_next_char (FILE *inf, size_t *line, size_t *charpos)
          LOG_ERR ("Fatal error creating array\n");
          return 0;
       }
+      atexit (g_instream_cleanup);
    }
 
    if (ds_array_length (g_instream) > 0) {
@@ -158,6 +204,7 @@ static void unget_char (int c, FILE *inf)
          LOG_ERR ("Fatal error creating array\n");
          return;
       }
+      atexit (g_instream_cleanup);
    }
 
    if (!(ds_array_ins_tail (&g_instream, (void *)(intptr_t)c))) {
@@ -166,26 +213,37 @@ static void unget_char (int c, FILE *inf)
    }
 }
 
-static char *get_next_word (FILE *inf, const char *filename,
+static char *get_next_word (FILE *inf, const char *extra_delims,
+                            int *delim_dst,
                             size_t *line, size_t *charpos)
 {
    bool error = true;
    char *ret = NULL;
 
    int c = 0;
+   bool inq = false;
 
-   size_t o_line = *line,
-          o_charpos = *charpos;
+   *delim_dst = EOF;
 
    while ((c = get_next_char (inf, line, charpos)) != EOF) {
       char tmp[2];
 
-      if (isspace (c) || c=='#' || c=='[' || c==']')
-         break;
-
-      if (c=='\\')
-         if (c == EOF)
+      if (c=='\\') {
+         if ((c = get_next_char (inf, line, charpos)) == EOF)
             break;
+      }
+
+      if (c=='"') {
+         inq = !inq;
+         continue;
+      }
+
+      if (!inq) {
+         if (isspace (c) || strchr (extra_delims, (char)c)) {
+            *delim_dst = (char)c;
+            break;
+         }
+      }
 
       tmp[0] = c;
       tmp[1] = 0;
@@ -210,6 +268,33 @@ errorexit:
    return ret;
 }
 
+static bool read_nv (FILE *inf, char **name, char **value,
+                     size_t *line, size_t *charpos)
+{
+   long stream_pos = ftell (inf);
+   size_t stream_line = *line;
+   size_t stream_charpos = *charpos;
+
+   int delim = 0;
+   char *l_name = NULL,
+        *l_value = NULL;
+
+   if ((l_name = get_next_word (inf, "#[]=", &delim, line, charpos))) {
+      if ((l_value = get_next_word (inf, "#[]", &delim, line, charpos))) {
+         *name = l_name;
+         *value = l_value;
+         return true;
+      }
+   }
+
+   free (l_name);
+   free (l_value);
+
+   fseek (inf, SEEK_SET, stream_pos);
+   *line = stream_line;
+   *charpos = stream_charpos;
+   return false;
+}
 
 /* ***************************************************************** */
 
@@ -225,11 +310,16 @@ static node_t *read_tree (FILE *inf, const char *filename,
    node_t *ret = NULL;
 
    char *text = NULL;
+   int delim = 0;
+
+   char *name = NULL,
+        *value = NULL;
 
    // Discard the first character
    int c = get_next_char (inf, line, charpos);
+   c = c;
 
-   if (!(text = get_next_word (inf, filename, line, charpos))) {
+   if (!(text = get_next_word (inf, "#[]", &delim, line, charpos))) {
       LOG_ERR ("Failed to read tagname\n");
       goto errorexit;
    }
@@ -237,6 +327,15 @@ static node_t *read_tree (FILE *inf, const char *filename,
    if (!(ret = node_new (filename, node_NODE, text, *line, *charpos))) {
       LOG_ERR ("Failed to create return node [%s]\n", text);
       goto errorexit;
+   }
+
+   while ((read_nv (inf, &name, &value, line, charpos))) {
+      if (!(ds_hmap_set_str_str (ret->hmap, name, value))) {
+         free (name);
+         free (value);
+         goto errorexit;
+      }
+      free (name);
    }
 
    if (!(node_read_next (ret, inf, filename, line, charpos))) {
@@ -267,7 +366,9 @@ static node_t *read_text (FILE *inf, const char *filename,
    size_t o_line = *line,
           o_charpos = *charpos;
 
-   if (!(text = get_next_word (inf, filename, line, charpos))) {
+   int delim = 0;
+
+   if (!(text = get_next_word (inf, "#[]", &delim, line, charpos))) {
       LOG_ERR ("OOM\n");
       goto errorexit;
    }
@@ -285,6 +386,7 @@ errorexit:
 static node_t *read_directive (FILE *inf, const char *filename,
                                size_t *line, size_t *charpos)
 {
+   filename = filename;
    // Discard the first character
    get_next_char (inf, line, charpos);
 

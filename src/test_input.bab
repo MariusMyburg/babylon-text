@@ -3,7 +3,7 @@ some normal text
       text within the tag
          [level2 name1=value1 name2=value2
             more text
-#include "second_test.bab"
+#include "second test.bab"
             ]]
    [emptytag]
 trailing text.

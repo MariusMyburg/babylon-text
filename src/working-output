@@ -1,0 +1,169 @@
+Starting babylon processing
+Found word [some]
+Found word [normal]
+Found word [text]
+Found word [tagname]
+Found word [name1]
+Found word [value1]
+Found nv [name1:value1]
+Found word [name]
+Found word [value2]
+Found nv [name:value2]
+Found word [text]
+Found word [within]
+Found word [the]
+Found word [tag]
+Found word [level2]
+Found word [name1]
+Found word [value1]
+Found nv [name1:value1]
+Found word [name2]
+Found word [value2]
+Found nv [name2:value2]
+Found word [more]
+Found word [text]
+Found word [include]
+Found word [second test.bab]
+Found word [emptytag]
+Found word [trailing]
+Found word [text.]
+                    START NODE: 0x5bf53a0
+                      filename: test_input.bab
+                          line: 0
+                       charpos: 0
+                          type: 0
+                          text: root
+----
+                    START NODE: 0x5bf6880
+                      filename: test_input.bab
+                          line: 0
+                       charpos: 1
+                          type: 1
+                          text: some
+----
+                     END  NODE: 0x5bf6880
+                    START NODE: 0x5bf6c70
+                      filename: test_input.bab
+                          line: 0
+                       charpos: 6
+                          type: 1
+                          text: normal
+----
+                     END  NODE: 0x5bf6c70
+                    START NODE: 0x5bf6fd0
+                      filename: test_input.bab
+                          line: 0
+                       charpos: 13
+                          type: 1
+                          text: text
+----
+                     END  NODE: 0x5bf6fd0
+                    START NODE: 0x5bf7420
+                      filename: test_input.bab
+                          line: 1
+                       charpos: 12
+                          type: 0
+                          text: tagname
+                          name => value2
+                         name1 => value1
+----
+                    START NODE: 0x5bf81c0
+                      filename: test_input.bab
+                          line: 2
+                       charpos: 6
+                          type: 1
+                          text: text
+----
+                     END  NODE: 0x5bf81c0
+                    START NODE: 0x5bf85b0
+                      filename: test_input.bab
+                          line: 2
+                       charpos: 11
+                          type: 1
+                          text: within
+----
+                     END  NODE: 0x5bf85b0
+                    START NODE: 0x5bf88c0
+                      filename: test_input.bab
+                          line: 2
+                       charpos: 18
+                          type: 1
+                          text: the
+----
+                     END  NODE: 0x5bf88c0
+                    START NODE: 0x5bf8bd0
+                      filename: test_input.bab
+                          line: 2
+                       charpos: 22
+                          type: 1
+                          text: tag
+----
+                     END  NODE: 0x5bf8bd0
+                    START NODE: 0x5bf8fe0
+                      filename: test_input.bab
+                          line: 3
+                       charpos: 17
+                          type: 0
+                          text: level2
+                         name2 => value2
+                         name1 => value1
+----
+                    START NODE: 0x5bf9dd0
+                      filename: test_input.bab
+                          line: 4
+                       charpos: 12
+                          type: 1
+                          text: more
+----
+                     END  NODE: 0x5bf9dd0
+                    START NODE: 0x5bfa120
+                      filename: test_input.bab
+                          line: 4
+                       charpos: 17
+                          type: 1
+                          text: text
+----
+                     END  NODE: 0x5bfa120
+                    START NODE: 0x5bfa570
+                      filename: test_input.bab
+                          line: 5
+                       charpos: 1
+                          type: 1
+                          text: include
+----
+                     END  NODE: 0x5bfa570
+                    START NODE: 0x5bfac40
+                      filename: test_input.bab
+                          line: 5
+                       charpos: 10
+                          type: 1
+                          text: second test.bab
+----
+                     END  NODE: 0x5bfac40
+                     END  NODE: 0x5bf8fe0
+                     END  NODE: 0x5bf7420
+                    START NODE: 0x5bfb1d0
+                      filename: test_input.bab
+                          line: 7
+                       charpos: 13
+                          type: 0
+                          text: emptytag
+----
+                    START NODE: 0x5bfb760
+                      filename: test_input.bab
+                          line: 7
+                       charpos: 14
+                          type: 1
+                          text: trailing
+----
+                     END  NODE: 0x5bfb760
+                    START NODE: 0x5bfbb00
+                      filename: test_input.bab
+                          line: 7
+                       charpos: 23
+                          type: 1
+                          text: text.
+----
+                     END  NODE: 0x5bfbb00
+                     END  NODE: 0x5bfb1d0
+                     END  NODE: 0x5bf53a0
