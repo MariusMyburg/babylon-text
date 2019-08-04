@@ -41,19 +41,22 @@ struct node_t {
    void **nodes;
 };
 
-static void node_dump (node_t *node)
+static void node_dump (node_t *node, FILE *outf)
 {
-   printf ("%30s: %p\n", "START NODE", node);
+   if (!outf)
+      outf = stdout;
+
+   fprintf (outf, "%30s: %p\n", "START NODE", node);
    if (!node) {
-      printf ("%30s: %p\n", "END  NODE", node);
+      fprintf (outf, "%30s: %p\n", "END  NODE", node);
       return;
    }
 
-   printf ("%30s: %s\n",      "filename", node->filename);
-   printf ("%30s: %zu\n",     "line",     node->line);
-   printf ("%30s: %zu\n",     "charpos",  node->charpos);
-   printf ("%30s: %i\n",      "type",     node->type);
-   printf ("%30s: %s\n",      "text",     node->text);
+   fprintf (outf, "%30s: %s\n",      "filename", node->filename);
+   fprintf (outf, "%30s: %zu\n",     "line",     node->line);
+   fprintf (outf, "%30s: %zu\n",     "charpos",  node->charpos);
+   fprintf (outf, "%30s: %i\n",      "type",     node->type);
+   fprintf (outf, "%30s: %s\n",      "text",     node->text);
 
    if (node->type == node_NODE) {
       size_t nkeys = 0;
@@ -66,18 +69,18 @@ static void node_dump (node_t *node)
          if (!(ds_hmap_get_str_str (node->hmap, keys[i], &value))) {
             LOG_ERR ("Failed to get key for [%s]\n", keys[i]);
          } else {
-            printf ("%30s => %s\n", keys[i], value);
+            fprintf (outf, "%30s => %s\n", keys[i], value);
          }
       }
       free (keys);
       free (keylens);
    }
 
-   printf ("----\n");
+   fprintf (outf, "----\n");
    for (size_t i=0; node->nodes && node->nodes[i]; i++) {
-      node_dump (node->nodes[i]);
+      node_dump (node->nodes[i], outf);
    }
-   printf ("%30s: %p\n", "END  NODE", node);
+   fprintf (outf, "%30s: %p\n", "END  NODE", node);
 }
 
 static void node_del (node_t *node)
@@ -499,8 +502,6 @@ static node_t *node_readfile (const char *filename)
       goto errorexit;
    }
 
-   node_dump (ret);
-
    error = false;
 
 errorexit:
@@ -592,6 +593,20 @@ void babylon_text_del (babylon_text_t *b)
    free (b->errmsg);
    node_del (b->root);
    free (b);
+}
+
+bool babylon_text_write (babylon_text_t *b, FILE *outf)
+{
+   if (!outf)
+      outf = stdout;
+
+   if (!b) {
+      LOG_ERR ("NULL object passed to function\n");
+      return false;
+   }
+
+   node_dump (b->root, outf);
+   return true;
 }
 
 int babylon_text_errcode (babylon_text_t *b)

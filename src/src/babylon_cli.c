@@ -31,6 +31,14 @@ int main (void)
       goto errorexit;
    }
 
+   if (!(babylon_text_write (b, stdout))) {
+      PROG_ERR ("Error %i writing [%s]:%s\n", babylon_text_errcode (b),
+                                              TEST_INPUT,
+                                              babylon_text_errmsg (b));
+      goto errorexit;
+   }
+
+
    ret = EXIT_SUCCESS;
 
 errorexit:
