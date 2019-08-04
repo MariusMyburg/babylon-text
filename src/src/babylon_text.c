@@ -161,6 +161,8 @@ errorexit:
    return ret;
 }
 
+/* ************************************************************** */
+
 // TODO: These functions make this module thread-unsafe. Refactor into a
 // different module that maintains thread-safety
 static void **g_instream = NULL;
@@ -617,6 +619,67 @@ int babylon_text_errcode (babylon_text_t *b)
 const char *babylon_text_errmsg (babylon_text_t *b)
 {
    return b ? b->errmsg : "bad param";
+}
+
+/* ************************************************************** */
+
+struct babylon_macro_t {
+   char *filename;
+   ds_hmap_t *macros;
+};
+
+babylon_macro_t *babylon_macro_read (const char *filename)
+{
+   bool error = true;
+   babylon_macro_t *ret = NULL;
+
+   if (!(ret = malloc (sizeof *ret))) {
+      LOG_ERR ("OOM\n");
+      goto errorexit;
+   }
+
+   memset (ret, 0, sizeof *ret);
+
+   if (!(ret->filename = ds_str_dup (filename))) {
+      LOG_ERR ("OOM\n");
+      goto errorexit;
+   }
+
+   if (!(ret->macros = ds_hmap_new (10))) {
+      LOG_ERR ("Failed to create hashmap for macros\n");
+      goto errorexit;
+   }
+
+   // TODO: Stopped here last.
+   error = false;
+
+errorexit:
+   if (error) {
+      babylon_macro_del (ret);
+      ret = NULL;
+   }
+
+   return ret;
+}
+
+void babylon_macro_del (babylon_macro_t *m)
+{
+   if (!m)
+      return;
+
+   free (m->filename);
+   char **keys = NULL;
+   size_t *keylens = NULL;
+   size_t nkeys = ds_hmap_keys (m->macros, (void ***)&keys, &keylens);
+
+   for (size_t i=0; i<nkeys; i++) {
+      free (keys[i]);
+   }
+   free (keylens);
+   free (keys);
+
+   ds_hmap_del (m->macros);
+   free (m);
 }
 
 

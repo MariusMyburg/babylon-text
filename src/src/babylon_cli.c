@@ -10,12 +10,14 @@
 } while (0)
 
 #define TEST_INPUT   ("test_input.bab")
+#define TEST_MACRO   ("test_macro.bam")
 
 int main (void)
 {
    int ret = EXIT_FAILURE;
 
    babylon_text_t *b = NULL;
+   babylon_macro_t *m = NULL;
 
    printf ("Starting babylon processing\n");
 
@@ -38,12 +40,17 @@ int main (void)
       goto errorexit;
    }
 
+   if (!(m = babylon_macro_read (TEST_MACRO))) {
+      PROG_ERR ("Failed to read macros from [%s]\n", TEST_MACRO);
+      goto errorexit;
+   }
 
    ret = EXIT_SUCCESS;
 
 errorexit:
 
    babylon_text_del (b);
+   babylon_macro_del (m);
 
    return ret;
 }
