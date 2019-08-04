@@ -101,7 +101,7 @@ static void node_del (node_t *node)
       size_t *keylens = NULL;
 
       size_t nkeys = ds_hmap_keys (node->hmap, (void ***)&keys, &keylens);
-      for (size_t i=0; nkeys!=(size_t)-1 && i<nkeys; i++) {
+      for (size_t i=0; i<nkeys; i++) {
          char *value = NULL;
          ds_hmap_get_str_str (node->hmap, keys[i], &value);
          free (value);
