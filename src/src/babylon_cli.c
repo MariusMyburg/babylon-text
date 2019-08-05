@@ -45,6 +45,8 @@ int main (void)
       goto errorexit;
    }
 
+   babylon_macro_dump (m, stdout);
+
    ret = EXIT_SUCCESS;
 
 errorexit:

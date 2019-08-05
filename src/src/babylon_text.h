@@ -18,6 +18,7 @@ extern "C" {
 
    babylon_macro_t *babylon_macro_read (const char *filename);
    void babylon_macro_del (babylon_macro_t *m);
+   void babylon_macro_dump (babylon_macro_t *m, FILE *outf);
 
 
    babylon_text_t *babylon_text_read (const char *filename);

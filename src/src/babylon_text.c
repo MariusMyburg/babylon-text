@@ -273,6 +273,38 @@ errorexit:
    return ret;
 }
 
+static char *get_next_line (FILE *inf, size_t *line, size_t *charpos)
+{
+   bool error = true;
+   char *ret = NULL;
+
+   char tmp[2] = { 0, 0 };
+   int c = 0;
+
+   if (!inf || !line || !charpos)
+      goto errorexit;
+
+   while ((c = get_next_char (inf, line, charpos))!=EOF) {
+      tmp[0] = c;
+      if (!(ds_str_append (&ret, tmp, NULL))) {
+         LOG_ERR ("OOM\n");
+         goto errorexit;
+      }
+      if (c == '\n')
+         break;
+   }
+
+   error = false;
+
+errorexit:
+   if (error) {
+      free (ret);
+      ret = NULL;
+   }
+
+   return ret;
+}
+
 static bool read_nv (FILE *inf, char **name, char **value,
                      size_t *line, size_t *charpos)
 {
@@ -628,10 +660,51 @@ struct babylon_macro_t {
    ds_hmap_t *macros;
 };
 
+void babylon_macro_dump (babylon_macro_t *m, FILE *outf)
+{
+   if (!outf)
+      outf = stdout;
+
+   if (!m) {
+      fprintf (outf, "Error: NULL macro object.\n");
+      return;
+   }
+
+   char **keys = NULL;
+   size_t *keylens = NULL;
+   size_t nkeys = ds_hmap_keys (m->macros, (void *)&keys, &keylens);
+
+   fprintf (outf, "--------------------------\n");
+   fprintf (outf, "Filename:          %s\n", m->filename);
+   fprintf (outf, "Number of macros:  %zu\n", nkeys);
+   for (size_t i=0; i<nkeys; i++) {
+      char *value = NULL;
+      if (!(ds_hmap_get_str_str (m->macros, keys[i], &value))) {
+         LOG_ERR ("Internal error: Failed to get value for [%s]\n", keys[i]);
+      } else {
+         fprintf (outf, "     Macro [%s] ==>\n", keys[i]);
+         fprintf (outf, "%s<==\n", value);
+      }
+   }
+   fprintf (outf, "--------------------------\n");
+
+   free (keys);
+   free (keylens);
+}
+
 babylon_macro_t *babylon_macro_read (const char *filename)
 {
    bool error = true;
    babylon_macro_t *ret = NULL;
+
+   char *input = NULL;
+   char *name = NULL;
+   char *body = NULL;
+
+   FILE *inf = NULL;
+
+   size_t line = 0,
+          charpos = 0;
 
    if (!(ret = malloc (sizeof *ret))) {
       LOG_ERR ("OOM\n");
@@ -645,15 +718,62 @@ babylon_macro_t *babylon_macro_read (const char *filename)
       goto errorexit;
    }
 
+   if (!(inf = fopen (filename, "r"))) {
+      LOG_ERR ("Failed to open file [%s] for reading: %m\n", filename);
+      goto errorexit;
+   }
+
    if (!(ret->macros = ds_hmap_new (10))) {
       LOG_ERR ("Failed to create hashmap for macros\n");
       goto errorexit;
    }
 
-   // TODO: Stopped here last.
+   while ((input = get_next_line (inf, &line, &charpos))!=NULL) {
+      // The first non-empty line signifies the start of a macro and
+      // contains the name of the macro.
+      ds_str_trim (input);
+      if (!input[0]) {
+         free (input);
+         continue;
+      }
+
+      free (name);
+      name = input;
+      body = NULL;
+
+      // Repeatedly retrieve lines until we get an empty one
+      while ((input = get_next_line (inf, &line, &charpos))) {
+         if (!input[0] || input[0]=='\n' || (input[0]=='\r' && input[1]=='\n'))
+            break;
+
+         if (!(ds_str_append (&body, input, NULL))) {
+            LOG_ERR ("%s:%zu: Macro [%s] Out of memory error\n",
+                      filename, line, name);
+            goto errorexit;
+         }
+         free (input);
+      }
+      free (input);
+
+      if (!body)
+         body = ds_str_dup ("");
+
+      if (!(ds_hmap_set_str_str (ret->macros, name, body))) {
+         LOG_ERR ("%s:%zu: Macro [%s]: Failed to store body [%s]\n",
+                     filename, line, name, body);
+         goto errorexit;
+      }
+   }
+
    error = false;
 
 errorexit:
+   if (inf)
+      fclose (inf);
+
+   free (input);
+   free (name);
+
    if (error) {
       babylon_macro_del (ret);
       ret = NULL;
@@ -673,7 +793,11 @@ void babylon_macro_del (babylon_macro_t *m)
    size_t nkeys = ds_hmap_keys (m->macros, (void ***)&keys, &keylens);
 
    for (size_t i=0; i<nkeys; i++) {
-      free (keys[i]);
+      char *value = NULL;
+      if (!(ds_hmap_get_str_str (m->macros, keys[i], &value))) {
+         LOG_ERR ("Internal error: Failed to get value for [%s]\n", keys[i]);
+      }
+      free (value);
    }
    free (keylens);
    free (keys);
