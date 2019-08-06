@@ -660,30 +660,103 @@ struct babylon_macro_t {
    ds_hmap_t *macros;
 };
 
-void babylon_macro_dump (babylon_macro_t *m, FILE *outf)
+struct macro_t {
+   char *filename;
+   char *name;
+   char *body;
+   size_t line;
+   size_t charpos;
+};
+
+static void macro_del (struct macro_t *m)
+{
+   if (!m)
+      return;
+
+   free (m->filename);
+   free (m->name);
+   free (m->body);
+   free (m);
+}
+
+static struct macro_t *macro_new (const char *filename,
+                                  const char *name, const char *body,
+                                  size_t line, size_t charpos)
+{
+   bool error = true;
+   struct macro_t *ret = NULL;
+
+   if (!(ret = malloc (sizeof *ret))) {
+      LOG_ERR ("OOM error (macro storage)\n");
+      goto errorexit;
+   }
+
+   memset (ret, 0, sizeof *ret);
+
+   ret->filename = ds_str_dup (filename);
+   ret->name = ds_str_dup (name);
+   ret->body = ds_str_dup (body);
+   ret->line = line;
+   ret->charpos = charpos;
+
+   if (!ret->filename || !ret->name || !ret->body) {
+      LOG_ERR ("OOM error macro fields\n");
+      goto errorexit;
+   }
+
+   error = false;
+
+errorexit:
+   if (error) {
+      macro_del (ret);
+      ret = NULL;
+   }
+
+   return ret;
+}
+
+static void macro_dump (struct macro_t *m, FILE *outf)
 {
    if (!outf)
       outf = stdout;
 
    if (!m) {
+      fprintf (outf, "Error: NULL Macro object!\n");
+      return;
+   }
+
+   fprintf (outf, "   Macro Name:      [%s]\n", m->name);
+   fprintf (outf, "   From:            [%s:%zu:%zu]\n", m->filename,
+                                                        m->line,
+                                                        m->charpos);
+   fprintf (outf, "   Macro body:      [%s]\n", m->body);
+}
+
+void babylon_macro_dump (babylon_macro_t *bm, FILE *outf)
+{
+   if (!outf)
+      outf = stdout;
+
+   if (!bm) {
       fprintf (outf, "Error: NULL macro object.\n");
       return;
    }
 
    char **keys = NULL;
    size_t *keylens = NULL;
-   size_t nkeys = ds_hmap_keys (m->macros, (void *)&keys, &keylens);
+   size_t nkeys = ds_hmap_keys (bm->macros, (void *)&keys, &keylens);
 
    fprintf (outf, "--------------------------\n");
-   fprintf (outf, "Filename:          %s\n", m->filename);
+   fprintf (outf, "Filename:          %s\n", bm->filename);
    fprintf (outf, "Number of macros:  %zu\n", nkeys);
    for (size_t i=0; i<nkeys; i++) {
-      char *value = NULL;
-      if (!(ds_hmap_get_str_str (m->macros, keys[i], &value))) {
+      struct macro_t *value = NULL;
+      size_t valuelen = 0;
+      if (!(ds_hmap_get_str_ptr (bm->macros, keys[i], (void **)&value,
+                                                      &valuelen))) {
          LOG_ERR ("Internal error: Failed to get value for [%s]\n", keys[i]);
       } else {
-         fprintf (outf, "     Macro [%s] ==>\n", keys[i]);
-         fprintf (outf, "%s<==\n", value);
+         macro_dump (value, outf);
       }
    }
    fprintf (outf, "--------------------------\n");
@@ -704,7 +777,9 @@ babylon_macro_t *babylon_macro_read (const char *filename)
    FILE *inf = NULL;
 
    size_t line = 0,
-          charpos = 0;
+          charpos = 0,
+          p_line = 0,
+          p_charpos = 0;
 
    if (!(ret = malloc (sizeof *ret))) {
       LOG_ERR ("OOM\n");
@@ -739,7 +814,12 @@ babylon_macro_t *babylon_macro_read (const char *filename)
 
       free (name);
       name = input;
+
+      free (body);
       body = NULL;
+
+      p_line = line;
+      p_charpos = charpos;
 
       // Repeatedly retrieve lines until we get an empty one
       while ((input = get_next_line (inf, &line, &charpos))) {
@@ -758,9 +838,20 @@ babylon_macro_t *babylon_macro_read (const char *filename)
       if (!body)
          body = ds_str_dup ("");
 
-      if (!(ds_hmap_set_str_str (ret->macros, name, body))) {
+      struct macro_t *new_macro = macro_new (filename, name, body,
+                                             p_line, p_charpos);
+      if (!new_macro) {
+         LOG_ERR ("%s:%zu:%zu Failed to create new macro\n", filename,
+                                                             line,
+                                                             charpos);
+         goto errorexit;
+      }
+
+      if (!(ds_hmap_set_str_ptr (ret->macros, name, new_macro,
+                                                    sizeof new_macro))) {
          LOG_ERR ("%s:%zu: Macro [%s]: Failed to store body [%s]\n",
                      filename, line, name, body);
+         macro_del (new_macro);
          goto errorexit;
       }
    }
@@ -773,6 +864,7 @@ errorexit:
 
    free (input);
    free (name);
+   free (body);
 
    if (error) {
       babylon_macro_del (ret);
@@ -782,28 +874,30 @@ errorexit:
    return ret;
 }
 
-void babylon_macro_del (babylon_macro_t *m)
+void babylon_macro_del (babylon_macro_t *bm)
 {
-   if (!m)
+   if (!bm)
       return;
 
-   free (m->filename);
+   free (bm->filename);
    char **keys = NULL;
    size_t *keylens = NULL;
-   size_t nkeys = ds_hmap_keys (m->macros, (void ***)&keys, &keylens);
+   size_t nkeys = ds_hmap_keys (bm->macros, (void ***)&keys, &keylens);
 
    for (size_t i=0; i<nkeys; i++) {
-      char *value = NULL;
-      if (!(ds_hmap_get_str_str (m->macros, keys[i], &value))) {
+      struct macro_t *value = NULL;
+      size_t valuelen = 0;
+      if (!(ds_hmap_get_str_ptr (bm->macros, keys[i], (void **)&value,
+                                                      &valuelen))) {
          LOG_ERR ("Internal error: Failed to get value for [%s]\n", keys[i]);
       }
-      free (value);
+      macro_del (value);
    }
    free (keylens);
    free (keys);
 
-   ds_hmap_del (m->macros);
-   free (m);
+   ds_hmap_del (bm->macros);
+   free (bm);
 }
 
 
