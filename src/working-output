@@ -127,48 +127,48 @@ Starting babylon processing
                           text: TEXT
 ----
                      END  NODE: 0x5bfc8c0
-                    START NODE: 0x5bfcd10
+                    START NODE: 0x5bfd110
                       filename: second test.bab
                           line: 1
-                       charpos: 12
+                       charpos: 26
                           type: 0
-                          text: TAGNAME
+                          text: TAGNAME with spaces
                           NAME => VALUE2
                          NAME1 => VALUE1
 ----
-                    START NODE: 0x5bfdab0
+                    START NODE: 0x5bfdec0
                       filename: second test.bab
                           line: 2
                        charpos: 6
                           type: 1
                           text: TEXT
 ----
-                     END  NODE: 0x5bfdab0
-                    START NODE: 0x5bfdea0
+                     END  NODE: 0x5bfdec0
+                    START NODE: 0x5bfe2b0
                       filename: second test.bab
                           line: 2
                        charpos: 11
                           type: 1
                           text: WITHIN
 ----
-                     END  NODE: 0x5bfdea0
-                    START NODE: 0x5bfe1b0
+                     END  NODE: 0x5bfe2b0
+                    START NODE: 0x5bfe5c0
                       filename: second test.bab
                           line: 2
                        charpos: 18
                           type: 1
                           text: THE
 ----
-                     END  NODE: 0x5bfe1b0
-                    START NODE: 0x5bfe4c0
+                     END  NODE: 0x5bfe5c0
+                    START NODE: 0x5bfe8d0
                       filename: second test.bab
                           line: 2
                        charpos: 22
                           type: 1
                           text: TAG
 ----
-                     END  NODE: 0x5bfe4c0
-                    START NODE: 0x5bfe8d0
+                     END  NODE: 0x5bfe8d0
+                    START NODE: 0x5bfece0
                       filename: second test.bab
                           line: 3
                        charpos: 17
@@ -177,73 +177,95 @@ Starting babylon processing
                          NAME2 => VALUE2
                          NAME1 => VALUE1
 ----
-                    START NODE: 0x5bff6c0
+                    START NODE: 0x5bffad0
                       filename: second test.bab
                           line: 4
                        charpos: 12
                           type: 1
                           text: MORE
 ----
-                     END  NODE: 0x5bff6c0
-                    START NODE: 0x5bffa10
+                     END  NODE: 0x5bffad0
+                    START NODE: 0x5bffe20
                       filename: second test.bab
                           line: 4
                        charpos: 17
                           type: 1
                           text: TEXT
 ----
-                     END  NODE: 0x5bffa10
-                     END  NODE: 0x5bfe8d0
-                     END  NODE: 0x5bfcd10
-                    START NODE: 0x5bfff90
+                     END  NODE: 0x5bffe20
+                     END  NODE: 0x5bfece0
+                     END  NODE: 0x5bfd110
+                    START NODE: 0x5c003a0
                       filename: second test.bab
                           line: 6
                        charpos: 13
                           type: 0
                           text: EMPTYTAG
 ----
-                    START NODE: 0x5c00520
+                    START NODE: 0x5c00930
                       filename: second test.bab
                           line: 6
                        charpos: 14
                           type: 1
                           text: TRAILING
 ----
-                     END  NODE: 0x5c00520
-                    START NODE: 0x5c008c0
+                     END  NODE: 0x5c00930
+                    START NODE: 0x5c00cd0
                       filename: second test.bab
                           line: 6
                        charpos: 23
                           type: 1
                           text: TEXT.
 ----
-                     END  NODE: 0x5c008c0
-                     END  NODE: 0x5bfff90
+                     END  NODE: 0x5c00cd0
+                     END  NODE: 0x5c003a0
                      END  NODE: 0x5bface0
                      END  NODE: 0x5bf8fe0
                      END  NODE: 0x5bf7420
-                    START NODE: 0x5c00f10
+                    START NODE: 0x5c01320
                       filename: test_input.bab
                           line: 7
                        charpos: 13
                           type: 0
                           text: emptytag
 ----
-                    START NODE: 0x5c014a0
+                    START NODE: 0x5c018b0
                       filename: test_input.bab
                           line: 7
                        charpos: 14
                           type: 1
                           text: trailing
 ----
-                     END  NODE: 0x5c014a0
-                    START NODE: 0x5c01840
+                     END  NODE: 0x5c018b0
+                    START NODE: 0x5c01c50
                       filename: test_input.bab
                           line: 7
                        charpos: 23
                           type: 1
                           text: text.
 ----
-                     END  NODE: 0x5c01840
-                     END  NODE: 0x5c00f10
+                     END  NODE: 0x5c01c50
+                     END  NODE: 0x5c01320
                      END  NODE: 0x5bf53a0
+--------------------------
+Filename:          test_macro.bam
+Number of macros:  3
+   Macro Name:      [A very long macro name Three]
+   From:            [test_macro.bam:14:0]
+   Macro body:      []
+   Macro Name:      [MACRO Two]
+   From:            [test_macro.bam:7:0]
+   Macro body:      [Note that macros themselves can have pretty descriptive names (such as
+with spaces, tabs, case-sensitivity, utf8, etc).
+The entire first line of a macro is the name.
+The body of a macro is everything after the name to the next empty line.
+Macro bodies may not have any empty lines.
+]
+   Macro Name:      [MACRO_1]
+   From:            [test_macro.bam:1:0]
+   Macro body:      [This is a test macro
+spanning multiple lines.
+This will be replaced with actual macros
+once this part of the code is tested.
+]
+--------------------------
