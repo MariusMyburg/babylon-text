@@ -39,7 +39,8 @@ Reformatting
 
 3. The variables starting with underscores are reserved for use by the
    system. This allows the addition of new implicit variables without
-   conflicting with any variables a user has already chosen.
+   conflicting with any variables a user has already chosen. Same with
+   tags that start with an underscore - reserved for the system itself.
 
 4. It is necessary to provide conditional macros; this is because if a
    tree fails to set an explicit variable that a macro needs we can only
@@ -59,6 +60,8 @@ Reformatting
    Usually (and the reason for writing this reformatted) we want the
    text processor to throw an error about an unknown variable; other times
    it is desirable to simply leave out the entire 'class=' text.
+
+   Example: <div $(_optional_ class=$(name1))>
 
    TODO: Figure out how to proceed with this!
 
@@ -82,5 +85,41 @@ Reformatting
    tag2, but it will find a $(name1) in tag2's parent.
 
    TODO: Is this a good idea? This is going to result in inheritance of
-   variables from includedd files that the user knows nothing about!
+   variables from included files that the user knows nothing about! Maybe
+   make it explicit in some way?
+
+6. Linking must be possible from the source.
+   [section name="My New Section"
+      ...]
+   [link target="My New Section" link text goes here]
+
+   It's perfectly possible to generate IDs for references at processing
+   time, because we can always scan the tree to find the target, then
+   update the target with a refcount. During output, we output a target ID
+   when refcount is non-zero.
+
+7. There needs to be some way of collecting variables so that repeated
+   uses are easy.
+   Source method:
+      [ToC for-each=chapter
+         [tr [td [link target=$(chapter.ref) $(chapter.name)]]]]
+
+   Macro method:
+      ToC
+      <table>
+         $(_group_ chapter)
+         <tr><td>$(_name_)</td><td>$(_ref_)</tr>
+      </table>
+
+   TODO: I don't like this - it is non-regular and inconsistent.
+
+8. We could perhaps use (an optional) tagging/grouping input file that
+   contains a list of tags/groups for particular tags. For example,
+   placing tags in a group lets the author control how that group is
+   produced. Simply, let the author put a single tag into multiple groups.
+   Groups file:
+      chapter = ToC     # Tag chapter as a ToC element,
+      chapter = link    # that must be always linkable.
+
+   TODO: Cannot really see a use for this!
 
