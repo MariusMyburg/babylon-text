@@ -64,6 +64,8 @@ Reformatting
    Example: <div $(_optional_ class=$(name1))>
 
    TODO: Figure out how to proceed with this!
+   
+   Suggestion: Perhaps have a seperate section for 'default values', if the processor does not find a value (like name1 is not defined), it will look for a default value in this list. If it THEn does not find it, it will yell and die. 
 
 5. Since it is cumbersome to manually specify each and every explicit
    variable, it is not a bad idea to search for variables upwards in the
@@ -112,6 +114,8 @@ Reformatting
       </table>
 
    TODO: I don't like this - it is non-regular and inconsistent.
+   
+   I think it is fine :)
 
 8. We could perhaps use (an optional) tagging/grouping input file that
    contains a list of tags/groups for particular tags. For example,
